@@ -3,9 +3,12 @@ import axios from 'axios';
 // Animations
 import { motion, AnimatePresence } from 'framer-motion';
 import Award from './components/Award'; 
+import Event from './components/Event';
+import Opor from './components/Opor'; // <--- 1. Import the new component
 
-// Total slides before news changes (0: News, 1: Award Page 1, 2: Award Page 2)
-const NO_OF_SLIDES = 2; 
+// Total slides count (indices: 0, 1, 2, 3)
+// 0: News, 1: Award, 2: Event, 3: Opor
+const NO_OF_SLIDES = 3; 
 
 // --- 1. ANIMATED SVG BACKGROUND (Theme: Light/Clean) ---
 const BackgroundSVG = () => (
@@ -36,17 +39,17 @@ const BackgroundSVG = () => (
     
     {/* Grid Floor */}
     <div className="absolute bottom-0 left-0 w-full h-[40%] opacity-[0.1]" 
-         style={{ 
-           backgroundImage: `
-             linear-gradient(rgba(44, 62, 80, 0.3) 1px, transparent 1px),
-             linear-gradient(90deg, rgba(44, 62, 80, 0.3) 1px, transparent 1px)
-           `,
-           backgroundSize: '40px 40px',
-           maskImage: 'linear-gradient(to top, black, transparent)',
-           WebkitMaskImage: 'linear-gradient(to top, black, transparent)',
-           transform: 'perspective(500px) rotateX(20deg) scale(1.5)',
-           transformOrigin: 'bottom'
-         }} 
+          style={{ 
+            backgroundImage: `
+              linear-gradient(rgba(44, 62, 80, 0.3) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(44, 62, 80, 0.3) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+            maskImage: 'linear-gradient(to top, black, transparent)',
+            WebkitMaskImage: 'linear-gradient(to top, black, transparent)',
+            transform: 'perspective(500px) rotateX(20deg) scale(1.5)',
+            transformOrigin: 'bottom'
+          }} 
     />
     
     {/* Floating Particles */}
@@ -153,7 +156,6 @@ const App = () => {
   const [progressKey, setProgressKey] = useState(0); 
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Use a ref to store the timer ID so we can clear/reset it from anywhere
   const timerRef = useRef(null);
 
   const fetchData = async () => {
@@ -169,11 +171,10 @@ const App = () => {
   const handleNext = useCallback(() => {
     setPage((prevPage) => {
       if (prevPage === NO_OF_SLIDES) {
-        // If at last slide, go to news (page 0) and next news index
+        // Reset to 0 (News) and advance news index
         setCurrentIndex((prevIdx) => (prevIdx + 1) % (newsList.length || 1));
         return 0; 
       } else {
-        // Just go to next page
         return prevPage + 1; 
       }
     });
@@ -184,26 +185,21 @@ const App = () => {
   const handlePrev = useCallback(() => {
     setPage((prevPage) => {
       if (prevPage === 0) {
-        // If at news (page 0), go to last slide (page 2) and previous news index
         setCurrentIndex((prevIdx) => {
-          // Wrap around logic: if at 0, go to last item, otherwise decrement
           return prevIdx === 0 ? (newsList.length || 1) - 1 : prevIdx - 1;
         });
         return NO_OF_SLIDES;
       } else {
-        // Just go to previous page
         return prevPage - 1;
       }
     });
     setProgressKey(prev => prev + 1); 
   }, [newsList.length]);
 
-  // --- TIMER RESET LOGIC ---
   const resetTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    // Start a new timer
     timerRef.current = setInterval(() => {
       handleNext();
     }, 20000);
@@ -215,33 +211,24 @@ const App = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // --- KEYBOARD & AUTO ADVANCE CONTROLS ---
   useEffect(() => {
     if (newsList.length === 0) return;
     
-    // Start the timer initially
     resetTimer();
 
-    // Keyboard controls
     const handleKeyDown = (event) => {
       const key = event.key.toLowerCase();
-      
-      // NEXT
       if (key === 'n' || event.key === 'ArrowRight') {
         handleNext();
-        resetTimer(); // Reset the 20s count
+        resetTimer();
       }
-      
-      // PREVIOUS
       if (key === 'p' || event.key === 'ArrowLeft') {
         handlePrev();
-        resetTimer(); // Reset the 20s count
+        resetTimer();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    
-    // Cleanup function
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       window.removeEventListener('keydown', handleKeyDown);
@@ -319,6 +306,7 @@ const App = () => {
       <AnimatePresence mode="wait">
         
         {page === 0 ? (
+          // --- PAGE 0: NEWS SLIDE ---
           <motion.div
             key={`content-${currentIndex}`} 
             variants={containerVariants}
@@ -328,11 +316,10 @@ const App = () => {
             className="h-screen w-full pl-12 pr-8 flex items-center relative z-10"
           >
             
-            {/* --- LEFT SIDE: NEWS CONTENT --- */}
+            {/* LEFT SIDE: NEWS CONTENT */}
             <div className="w-[70%] flex flex-col justify-center pr-12 h-full pt-20"> 
               
               <motion.div variants={itemVariants} className="flex items-center gap-4 mb-4">
-                {/* Category Badge */}
                 <span className="px-4 py-1 bg-[#E67E22]/10 border border-[#E67E22]/30 text-[#d35400] text-xs font-bold uppercase tracking-[0.15em] rounded-full">
                   {currentNews["Category of the News"] || "General"}
                 </span>
@@ -344,7 +331,6 @@ const App = () => {
                 </span>
               </motion.div>
 
-              {/* Headline */}
               <motion.h1 
                 variants={itemVariants} 
                 className="text-5xl xl:text-7xl font-black leading-[1.05] mb-6 tracking-tight 
@@ -382,13 +368,12 @@ const App = () => {
 
             </div>
 
-            {/* --- RIGHT SIDE: IMAGE WIDGET --- */}
+            {/* RIGHT SIDE: IMAGE WIDGET */}
             <div className="w-[30%] h-full flex items-center justify-center">
                 <motion.div 
                   variants={itemVariants}
                   className="w-full max-w-sm"
                 >
-                  {/* Pass the 'Image' column data to the widget */}
                   <NewsImageWidget 
                     category={currentNews["Category of the News"]} 
                     imageUrl={currentNews["Image"]} 
@@ -405,7 +390,10 @@ const App = () => {
             </div>
 
           </motion.div>
-        ) : (
+
+        ) : page === 1 ? (
+
+          // --- PAGE 1: AWARDS SLIDE ---
           <motion.div
             key={`award-slide-${page}`}
             initial={{ opacity: 0 }}
@@ -415,7 +403,34 @@ const App = () => {
           >
              <Award slideIndex={page - 1} />
           </motion.div>
+
+        ) : page === 2 ? (
+
+          // --- PAGE 2: EVENTS SLIDE ---
+          <motion.div
+             key={`event-slide-${page}`}
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="h-screen w-full flex items-center justify-center z-20"
+          >
+             <Event slideIndex={page} />
+          </motion.div>
+
+        ) : (
+
+          // --- PAGE 3: OPPORTUNITY SLIDE (NEW) ---
+          <motion.div
+             key={`opor-slide-${page}`}
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="h-screen w-full flex items-center justify-center z-20"
+          >
+             <Opor />
+          </motion.div>
         )}
+
       </AnimatePresence>
     </div>
   );
