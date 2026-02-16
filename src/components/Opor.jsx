@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 // --- DUMMY DATA ---
 const DATA = {
   company: "TCS iON",
-  logo: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Tata_Consultancy_Services_Logo.svg", 
+  logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS6Hk-cCmmtCp1D7LPyaZeJPruelynAA9KP3A&s", 
   role: "Young Professional Internship",
   description: "Join TCS's elite early-career program designed to bridge the gap between academic theory and industry reality. You will work on live cloud infrastructure projects and AI-driven automation tools under the mentorship of senior architects.",
   type: "Remote / Hybrid",

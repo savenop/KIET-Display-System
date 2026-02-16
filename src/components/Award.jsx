@@ -238,7 +238,7 @@ const Award = ({ slideIndex = 0 }) => {
                     <p className="text-gray-500 italic font-medium leading-relaxed text-sm md:text-base">
                       "{item["Short Description about the event"]}"
                     </p>
-                 </div>
+                 </div>  
               </div>
 
             </div>

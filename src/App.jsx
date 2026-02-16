@@ -152,6 +152,7 @@ const formatNewsDate = (dateString) => {
 const App = () => {
   const [newsList, setNewsList] = useState([]); 
   const [currentIndex, setCurrentIndex] = useState(0); 
+  const [awardIndex, setAwardIndex] = useState(0);
   const [page, setPage] = useState(0); 
   const [progressKey, setProgressKey] = useState(0); 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -168,18 +169,24 @@ const App = () => {
   };
 
   // --- HANDLER: Next Slide ('N') ---
-  const handleNext = useCallback(() => {
-    setPage((prevPage) => {
-      if (prevPage === NO_OF_SLIDES) {
-        // Reset to 0 (News) and advance news index
-        setCurrentIndex((prevIdx) => (prevIdx + 1) % (newsList.length || 1));
-        return 0; 
-      } else {
-        return prevPage + 1; 
-      }
-    });
-    setProgressKey(prev => prev + 1); 
-  }, [newsList.length]);
+const handleNext = useCallback(() => {
+  setPage((prevPage) => {
+    // If we reached the end of the slides (Opor -> News)
+    if (prevPage === NO_OF_SLIDES) {
+      
+      // 1. Update News Index
+      setCurrentIndex((prevIdx) => (prevIdx + 1) % (newsList.length || 1));
+      
+      // 2. Update Award Index (ADD THIS LINE)
+      setAwardIndex((prev) => prev + 1); 
+
+      return 0; // Go back to News
+    } else {
+      return prevPage + 1; 
+    }
+  });
+  setProgressKey(prev => prev + 1); 
+}, [newsList.length]);
 
   // --- HANDLER: Previous Slide ('P') ---
   const handlePrev = useCallback(() => {
@@ -401,7 +408,7 @@ const App = () => {
             exit={{ opacity: 0 }}
             className="h-screen w-full flex items-center justify-center z-20"
           >
-             <Award slideIndex={page - 1} />
+             <Award slideIndex={awardIndex} />
           </motion.div>
 
         ) : page === 2 ? (
