@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/kietdata/:match*",
+      "destination": "https://api.krishnaaggarwal.com/kietdata/:match*"
+    }
+  ]
+}
