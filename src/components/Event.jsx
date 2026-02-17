@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 
-// --- GLOBAL MEMORY ---
-// These variables live OUTSIDE the component.
-// When App.js switches pages, it destroys the Event component.
-// Keeping this outside ensures it remembers where it left off across cycles!
-let eventsCache = null;
+// Global memory to remember index across slide changes
 let savedEventIndex = 0; 
 
 const getDriveId = (url) => {
@@ -25,56 +20,32 @@ const getDriveId = (url) => {
   return id;
 };
 
-const Event = () => {
-  const [events, setEvents] = useState(eventsCache || []);
-  const [loading, setLoading] = useState(!eventsCache);
-  
-  // Initialize with the remembered global index instead of 0
+// --- UPDATED COMPONENT ---
+const Event = ({ preFetchedData = [] }) => {
+  // Use pre-fetched data
+  const events = preFetchedData;
+
+  // Initialize with the remembered global index
   const [currentIndex, setCurrentIndex] = useState(savedEventIndex);
   
   const [imgError, setImgError] = useState(false);
   const [isDeadLink, setIsDeadLink] = useState(false);
 
-  // --- 1. FETCH & SORT DATA ---
+  // --- SYNC GLOBAL MEMORY & ADVANCE ON EXIT ---
   useEffect(() => {
-    if (eventsCache) return;
-    const fetchData = async () => {
-      try {
-        const res = await axios.get('/kietdata/led');
-        const validData = res.data.filter(item => 
-            item["Upload your Poster Image (JPEG/PNG recommended) or Short Video (MP4/MOV recommended)"]
-        );
-        const sortedData = validData.reverse();
-        
-        eventsCache = sortedData;
-        setEvents(sortedData);
-        setLoading(false);
-      } catch (err) {
-        console.error("Fetch Error:", err);
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  // --- 2. SYNC GLOBAL MEMORY & ADVANCE ON EXIT ---
-  useEffect(() => {
-    // Keep the global variable synced with the current slide
     savedEventIndex = currentIndex;
   }, [currentIndex]);
 
   useEffect(() => {
-    // Cleanup function: This runs when App.js switches away from the Event page.
-    // We intentionally push the index forward by 1 so that the NEXT time 
-    // this page appears, it starts on the next event in the queue.
+    // When unmounting, push index forward by 1 for next time
     return () => {
-      if (eventsCache && eventsCache.length > 0) {
-        savedEventIndex = (savedEventIndex + 1) % eventsCache.length;
+      if (events && events.length > 0) {
+        savedEventIndex = (savedEventIndex + 1) % events.length;
       }
     };
-  }, []);
+  }, [events]);
 
-  // --- 3. INTERNAL CYCLE TIMER (Optional: Changes slides while on screen) ---
+  // --- INTERNAL CYCLE TIMER ---
   useEffect(() => {
     if (events.length === 0) return;
 
@@ -91,11 +62,10 @@ const Event = () => {
     setIsDeadLink(false);
   }, [currentIndex]);
 
-  if (loading) return <div className="h-screen flex items-center justify-center text-gray-400">Loading...</div>;
   if (!events.length) return <div className="h-screen flex items-center justify-center text-gray-400">No Events Found</div>;
 
   // --- CURRENT ITEM ---
-  const item = events[currentIndex];
+  const item = events[currentIndex % events.length]; // Safeguard index
   
   const rawUrl = item["Upload your Poster Image (JPEG/PNG recommended) or Short Video (MP4/MOV recommended)"];
   const type = item["Select Content Type"]?.toLowerCase() || "";
@@ -145,24 +115,24 @@ const Event = () => {
              </div>
           ) : isVideo ? (
             <video 
-                src={mediaSrc} 
-                className="max-h-[85vh] max-w-full object-contain drop-shadow-xl rounded-lg" 
-                autoPlay muted loop playsInline 
-                onError={() => setIsDeadLink(true)}
+               src={mediaSrc} 
+               className="max-h-[85vh] max-w-full object-contain drop-shadow-xl rounded-lg" 
+               autoPlay muted loop playsInline 
+               onError={() => setIsDeadLink(true)}
             />
           ) : (
             <img 
-                src={mediaSrc} 
-                referrerPolicy="no-referrer"
-                className="max-h-[85vh] max-w-full object-contain drop-shadow-xl rounded-lg" 
-                alt="Event"
-                onError={() => {
-                    if (!imgError) {
-                        setImgError(true);
-                    } else {
-                        setIsDeadLink(true);
-                    }
-                }}
+               src={mediaSrc} 
+               referrerPolicy="no-referrer"
+               className="max-h-[85vh] max-w-full object-contain drop-shadow-xl rounded-lg" 
+               alt="Event"
+               onError={() => {
+                   if (!imgError) {
+                       setImgError(true);
+                   } else {
+                       setIsDeadLink(true);
+                   }
+               }}
             />
           )}
         </motion.div>
