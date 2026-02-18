@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper: Get Initials from Name
@@ -9,21 +9,24 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// Helper: Convert Google Drive View Link to Embed Link
+// *** FIXED HELPER FUNCTION ***
 const getDriveImage = (url) => {
-  if (!url || !url.includes('google.com')) return null;
-  let id = null;
-  const parts = url.split('/');
-  const dIndex = parts.indexOf('d');
-  if (dIndex !== -1 && parts[dIndex + 1]) {
-    id = parts[dIndex + 1];
-  } else if (url.includes('id=')) {
-    id = new URL(url).searchParams.get('id');
+  if (!url) return null;
+  
+  // 1. Extract the ID using Regex (Works for /file/d/ID and ?id=ID)
+  const idRegex = /(?:\/d\/|id=)([\w-]+)/;
+  const match = url.match(idRegex);
+  
+  if (match && match[1]) {
+    // 2. Use the 'lh3' endpoint which allows direct embedding of Drive images
+    // w=1000 sets the width to 1000px. You can increase this if needed.
+    return `https://lh3.googleusercontent.com/d/${match[1]}=w1000`;
   }
-  return id ? `https://googleusercontent.com/profile/picture/0${id}?authuser=0&w=1000` : url;
+  
+  return null;
 };
 
-// Helper: Theme logic
+// Helper: Theme logic (Unchanged)
 const getAwardTheme = (pos) => {
   const p = pos?.toLowerCase() || "";
   if (p.includes("1st") || p.includes("winner") || p.includes("first")) 
@@ -52,6 +55,9 @@ const getAwardTheme = (pos) => {
 };
 
 const Award = ({ slideIndex = 0, preFetchedData = [] }) => {
+  // State to track if image failed to load
+  const [imgError, setImgError] = useState(false);
+
   const totalRecords = preFetchedData.length;
   if (totalRecords === 0) return null;
 
@@ -60,12 +66,23 @@ const Award = ({ slideIndex = 0, preFetchedData = [] }) => {
 
   if (!item) return null;
 
+  // Reset error state when slide changes
+  React.useEffect(() => {
+    setImgError(false);
+  }, [currentIndex]);
+
   const theme = getAwardTheme(item["Your position /Achievement"]);
-  const driveLink = item["Google drive Link of event pictures for magazine /website updation(sharing mode should be on)"];
-  const eventImage = getDriveImage(driveLink);
+  const rawLink = item["Google drive Link of event pictures for magazine /website updation(sharing mode should be on)"];
+  
+  // Only try to generate an image link if the raw link exists
+  const eventImage = rawLink ? getDriveImage(rawLink) : null;
+  
   const stipend = item["Winning Amount/ Stipend (if any for hackathon/ internship or any other extra curricular event)"];
   const finalStipend = (stipend && stipend.toLowerCase() !== "na" && stipend.trim() !== "") ? stipend : "N/A";
   const positionText = item["Your position /Achievement"] || "Participant";
+
+  // LOGIC: Show image if URL exists AND no error occurred. Otherwise, show fallback.
+  const showImage = eventImage && !imgError;
 
   return (
     <div className="relative w-full min-h-screen bg-[#F8F9FA] text-[#2C3E50] overflow-x-hidden">
@@ -106,32 +123,34 @@ const Award = ({ slideIndex = 0, preFetchedData = [] }) => {
             transition={{ duration: 0.5, ease: "circOut" }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start pb-24" 
           >
-            {/* LEFT COL: IMAGE */}
+            {/* LEFT COL: IMAGE OR FALLBACK */}
             <div className="lg:col-span-7 relative group">
               <div className="absolute -inset-4 border-2 border-dashed border-gray-300 rounded-[2.5rem] opacity-50 rotate-1 group-hover:rotate-0 transition-transform duration-500"></div>
               <div className="relative h-[400px] md:h-[550px] rounded-[2rem] overflow-hidden shadow-2xl ring-8 ring-white bg-white">
-                {eventImage ? (
+                
+                {/* 1. ACTUAL IMAGE */}
+                {showImage && (
                   <img 
                     src={eventImage} 
                     alt="Event" 
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                    onError={(e) => { 
-                        e.target.style.display='none';
-                        e.target.nextSibling.style.display='flex'; 
-                    }}
+                    onError={() => setImgError(true)} // If image fails, switch to fallback
                   />
-                ) : null}
+                )}
 
-                {/* FALLBACK CONTAINER */}
-                <div style={{ display: eventImage ? 'none' : 'flex' }} className={`w-full h-full ${theme.darkBg} flex-col items-center justify-center p-8 text-center relative overflow-hidden`}>
-                   <motion.div animate={{ x: [0, 50, -50, 0], y: [0, -50, 50, 0], scale: [1, 1.2, 0.8, 1] }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }} className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full blur-[80px] opacity-60" style={{ backgroundColor: theme.blob[0] }} />
-                   <motion.div animate={{ x: [0, -30, 30, 0], y: [0, 40, -40, 0], scale: [1, 1.1, 0.9, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }} className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full blur-[80px] opacity-60" style={{ backgroundColor: theme.blob[1] }} />
-                   <div className="relative z-10 w-full max-w-lg backdrop-blur-sm border border-white/10 bg-white/5 p-8 rounded-3xl shadow-2xl">
-                          <div className="mb-6"><span className="inline-block px-4 py-1.5 rounded-full text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] shadow-lg border border-white/20" style={{ backgroundColor: theme.main }}>{positionText}</span></div>
-                          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight drop-shadow-xl mb-4 line-clamp-3">{item["Event Name/ Title"]}</h2>
-                   </div>
-                </div>
+                {/* 2. FALLBACK CONTAINER (Shows if no image OR if image errors) */}
+                {!showImage && (
+                  <div className={`w-full h-full ${theme.darkBg} flex flex-col items-center justify-center p-8 text-center relative overflow-hidden`}>
+                     <motion.div animate={{ x: [0, 50, -50, 0], y: [0, -50, 50, 0], scale: [1, 1.2, 0.8, 1] }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }} className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full blur-[80px] opacity-60" style={{ backgroundColor: theme.blob[0] }} />
+                     <motion.div animate={{ x: [0, -30, 30, 0], y: [0, 40, -40, 0], scale: [1, 1.1, 0.9, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }} className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full blur-[80px] opacity-60" style={{ backgroundColor: theme.blob[1] }} />
+                     <div className="relative z-10 w-full max-w-lg backdrop-blur-sm border border-white/10 bg-white/5 p-8 rounded-3xl shadow-2xl">
+                            <div className="mb-6"><span className="inline-block px-4 py-1.5 rounded-full text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] shadow-lg border border-white/20" style={{ backgroundColor: theme.main }}>{positionText}</span></div>
+                            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight drop-shadow-xl mb-4 line-clamp-3">{item["Event Name/ Title"]}</h2>
+                     </div>
+                  </div>
+                )}
 
+                {/* Organization tag overlay */}
                 {item["Organization \n[Organization in which event happened]"] && (
                   <div className="absolute bottom-6 right-6 z-20">
                       <div className="bg-white/95 backdrop-blur px-6 py-3 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-3">
@@ -143,7 +162,7 @@ const Award = ({ slideIndex = 0, preFetchedData = [] }) => {
               </div>
             </div>
 
-            {/* RIGHT COL: INFO */}
+            {/* RIGHT COL: INFO (Unchanged) */}
             <div className="lg:col-span-5 flex flex-col gap-6 pt-2">
               <div className="flex items-start gap-6">
                  <div className="relative shrink-0">
