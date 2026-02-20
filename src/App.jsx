@@ -80,27 +80,31 @@ const App = () => {
 
   const isSystemReady = newsList.length > 0 && awardsList.length > 0 && eventsList.length > 0;
 
-  // --- 2. INAUGURATION LOGIC ---
+  // --- 2. INAUGURATION LOGIC (Optimized for Performance) ---
   const handleInauguration = () => {
+    setIsLaunching(true);
     const duration = 3000;
     const end = Date.now() + duration;
+    const colors = ['#E67E22', '#2C3E50', '#F39C12'];
 
-    const frame = () => {
-      confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#E67E22', '#2C3E50', '#F39C12'] });
-      confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#E67E22', '#2C3E50', '#F39C12'] });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    };
+    // Big initial burst from the center
+    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: colors });
 
-    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: ['#E67E22', '#2C3E50', '#F39C12'] });
+    // Performant continuous bursts from the sides (every 250ms instead of every frame)
+    const interval = setInterval(() => {
+      if (Date.now() > end) {
+        return clearInterval(interval);
+      }
+      confetti({ particleCount: 20, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+      confetti({ particleCount: 20, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+    }, 250);
 
-    frame();
-    setIsLaunching(true);
-
+    // Give it 2.5s before fading the screen out
     setTimeout(() => {
       setIsInaugurated(true);
       setProgressKey(prev => prev + 1);
       resetTimer(); 
-    }, 2000);
+    }, 2500); 
   };
 
   // --- 3. SLIDESHOW HANDLERS ---

@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Snowfall from 'react-snowfall';
 import { FloatingShapes } from './BackgroundElements'; 
 
@@ -67,17 +67,31 @@ const InaugurationScreen = ({
           </p>
         </motion.div>
 
-        {/* Outline Button */}
-        <div className="mt-12">
+        {/* Outline Button with Enhanced Click Effect */}
+        <div className="mt-12 relative flex justify-center items-center">
+          
+          {/* Expanding glow ring that appears on click */}
+          <AnimatePresence>
+            {isLaunching && (
+              <motion.div
+                initial={{ scale: 1, opacity: 0.8 }}
+                animate={{ scale: 2.5, opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="absolute inset-0 rounded-full bg-[#E67E22] blur-md pointer-events-none"
+              />
+            )}
+          </AnimatePresence>
+
           <motion.button
-            whileHover={isSystemReady ? { y: -6 } : {}}
-            whileTap={isSystemReady ? { scale: 0.96 } : {}}
+            whileHover={isSystemReady && !isLaunching ? { y: -6 } : {}}
+            whileTap={isSystemReady && !isLaunching ? { scale: 0.96 } : {}}
+            animate={isLaunching ? { scale: 1.05, boxShadow: "0px 0px 30px rgba(230,126,34,0.5)", borderColor: "#E67E22" } : {}}
             onClick={isSystemReady ? onInaugurate : onRetry}
             disabled={(!isSystemReady && !isError) || (isLaunching && isSystemReady)}
             className={`
               relative px-12 py-5 rounded-full font-black text-lg tracking-widest uppercase 
-              transition-all duration-300 flex items-center gap-3
-              border-2 backdrop-blur-md
+              transition-all duration-300 flex items-center gap-3 z-10
+              border-2 backdrop-blur-md overflow-hidden group
               ${
                 isSystemReady
                   ? "border-[#2C3E50] text-[#2C3E50] bg-transparent hover:bg-white/20 hover:shadow-xl"
@@ -87,16 +101,25 @@ const InaugurationScreen = ({
               }
             `}
           >
+            {/* Built-in Framer Motion Shimmer Effect */}
+            {isSystemReady && !isLaunching && (
+              <motion.div 
+                animate={{ x: ["-100%", "200%"] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "linear", repeatDelay: 1 }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-12 pointer-events-none" 
+              />
+            )}
+
             {isLaunching ? (
               <span className="flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                {isSystemReady ? "Initializing..." : "Connecting..."}
+                <div className="w-5 h-5 border-2 border-[#E67E22] border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-[#E67E22]">Launching...</span>
               </span>
             ) : isSystemReady ? (
               <>
-                <span className="text-[#E67E22]">✦</span> 
+                <span className="text-[#E67E22] transition-transform duration-300 group-hover:rotate-90">✦</span> 
                 Inaugurate 
-                <span className="text-[#E67E22]">✦</span>
+                <span className="text-[#E67E22] transition-transform duration-300 group-hover:rotate-90">✦</span>
               </>
             ) : (
               "Loading Assets..."
